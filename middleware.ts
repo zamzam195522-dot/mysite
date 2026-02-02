@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE_NAME } from './src/lib/auth';
+import { SESSION_COOKIE_NAME, getSessionUser, isAdmin } from './src/lib/auth';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -39,6 +39,39 @@ export function middleware(request: NextRequest) {
         },
       );
     }
+
+    // Additional check for admin-only endpoints
+    const adminOnlyEndpoints = [
+      '/api/employees',
+      '/api/products',
+      '/api/product-categories',
+      '/api/vendors',
+      '/api/vendor-purchases',
+      '/api/vendor-payments',
+      '/api/expense-heads',
+      '/api/expenses',
+      '/api/areas',
+      '/api/banks',
+      '/api/employee-areas',
+      '/api/stock',
+      '/api/reports',
+    ];
+
+    const isAdminEndpoint = adminOnlyEndpoints.some(endpoint => pathname.startsWith(endpoint));
+
+    if (isAdminEndpoint) {
+      const user = getSessionUser(request);
+      if (!user || !isAdmin(user)) {
+        return new NextResponse(
+          JSON.stringify({ success: false, message: 'Admin access required' }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+    }
+
     return NextResponse.next();
   }
 

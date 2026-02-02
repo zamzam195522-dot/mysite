@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDbPool } from '@/lib/db';
 import { createHash } from 'crypto';
+import { getSessionUser, requireAdmin } from '@/lib/auth';
 
 type NewEmployeeRequest = {
   name: string;
@@ -38,6 +39,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // Check admin authorization
+  const authResult = requireAdmin(getSessionUser(request as any));
+  if (!authResult.authorized) {
+    return NextResponse.json(
+      { success: false, message: authResult.error },
+      { status: authResult.error === 'Unauthenticated' ? 401 : 403 }
+    );
+  }
+
   let body: Partial<NewEmployeeRequest>;
   try {
     body = (await request.json()) as Partial<NewEmployeeRequest>;

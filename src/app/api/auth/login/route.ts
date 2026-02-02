@@ -31,9 +31,13 @@ export async function POST(request: NextRequest) {
   const pool = getDbPool();
   const result = await pool.query(
     `
-    SELECT id, username, password_hash, status
-    FROM users
-    WHERE username = $1
+    SELECT u.id, u.username, u.password_hash, u.status,
+           COALESCE(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), ARRAY[]::text[]) as roles
+    FROM users u
+    LEFT JOIN user_roles ur ON u.id = ur.user_id
+    LEFT JOIN roles r ON ur.role_id = r.id
+    WHERE u.username = $1
+    GROUP BY u.id, u.username, u.password_hash, u.status
     LIMIT 1
     `,
     [username],
@@ -41,11 +45,12 @@ export async function POST(request: NextRequest) {
 
   const user = result.rows[0] as
     | {
-        id: number;
-        username: string;
-        password_hash: string;
-        status: string;
-      }
+      id: number;
+      username: string;
+      password_hash: string;
+      status: string;
+      roles: string[];
+    }
     | undefined;
 
   if (!user || user.status !== 'ACTIVE') {
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   return attachSessionCookie(
     response,
-    createSessionPayload({ id: Number(user.id), username: user.username }),
+    createSessionPayload({ id: Number(user.id), username: user.username, roles: user.roles }),
   );
 }
 
