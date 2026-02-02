@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type HeaderProps = {
   onProductClick?: () => void; // kept for backward compatibility (home modal etc.)
@@ -14,6 +15,7 @@ type NavItem = {
 };
 
 export default function Header(_props: HeaderProps) {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDesktopDropdownKey, setOpenDesktopDropdownKey] = useState<string | null>(null);
   const [openMobileDropdownKey, setOpenMobileDropdownKey] = useState<string | null>(null);
@@ -175,7 +177,11 @@ export default function Header(_props: HeaderProps) {
                 </a>
               ),
             )}
-            <button className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+            <button
+              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+              type="button"
+              onClick={() => router.push('/login')}
+            >
               Login
             </button>
           </div>
@@ -260,7 +266,14 @@ export default function Header(_props: HeaderProps) {
                 </a>
               ),
             )}
-            <button className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4">
+            <button
+              className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4"
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
+                router.push('/login');
+              }}
+            >
               Login
             </button>
           </div>
