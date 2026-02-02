@@ -61,6 +61,21 @@ export async function POST(request: NextRequest) {
 
     const user = result.rows[0] as { id: number; username: string };
 
+    // Fetch user roles for the session
+    const rolesResult = await pool.query(
+      `
+      SELECT COALESCE(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), ARRAY[]::text[]) as roles
+      FROM users u
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
+      WHERE u.id = $1
+      GROUP BY u.id
+      `,
+      [user.id],
+    );
+
+    const roles = rolesResult.rows[0]?.roles || [];
+
     const response = NextResponse.json({
       success: true,
       user: {
@@ -71,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     return attachSessionCookie(
       response,
-      createSessionPayload({ id: Number(user.id), username: user.username }),
+      createSessionPayload({ id: Number(user.id), username: user.username, roles }),
     );
   } catch (err: unknown) {
     const pgErr = err as { code?: string };
