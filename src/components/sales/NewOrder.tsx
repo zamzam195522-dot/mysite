@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import { printInvoice } from '@/lib/printInvoice';
 
 type ProductOption = { id: number; name: string };
 type CustomerOption = { id: number; code: string; name: string; status: 'ACTIVE' | 'INACTIVE' };
@@ -36,6 +37,8 @@ export default function NewOrder() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'BANK' | 'CREDIT'>('CASH');
+  const [receivedAmount, setReceivedAmount] = useState<string>('');
 
   const load = async () => {
     try {
@@ -166,6 +169,14 @@ export default function NewOrder() {
       setError('Add at least one item.');
       return;
     }
+    if (paymentMethod !== 'CREDIT' && !receivedAmount) {
+      setError('Enter received amount for cash/online payment.');
+      return;
+    }
+    if (receivedAmount && Number(receivedAmount) < subtotal) {
+      setError('Received amount cannot be less than total amount.');
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -175,7 +186,12 @@ export default function NewOrder() {
       const sid =
         salesmanEmployeeId.trim() === '' ? null : Number(salesmanEmployeeId.trim());
 
-      const res = await apiFetch<{ success: true; invoiceId: number; invoiceNo: string }>(
+      const res = await apiFetch<{
+        success: true;
+        invoiceId: number;
+        invoiceNo: string;
+        invoiceData: any;
+      }>(
         '/api/sales-invoices',
         {
           method: 'POST',
@@ -185,6 +201,8 @@ export default function NewOrder() {
             orderDate,
             invoiceNo: invoiceNo.trim() || null,
             billBookNo: billBookNo.trim() || null,
+            paymentMethod,
+            receivedAmount: paymentMethod !== 'CREDIT' ? Number(receivedAmount) : null,
             items: items.map((it) => ({
               productId: it.productId,
               unitPrice: it.unitPrice,
@@ -196,9 +214,18 @@ export default function NewOrder() {
       );
 
       setMessage(`Saved invoice ${res.invoiceNo}.`);
+
+      // Auto-print for cash payments
+      if (paymentMethod === 'CASH') {
+        printInvoice(res.invoiceData);
+      }
+
+      // Reset form
       setItems([]);
       setInvoiceNo('');
       setBillBookNo('');
+      setReceivedAmount('');
+      setPaymentMethod('CASH');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save bill');
     } finally {
@@ -355,6 +382,41 @@ export default function NewOrder() {
             <div className="flex items-end justify-end text-sm font-semibold text-gray-800">
               Total: {subtotal}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Payment Method</label>
+              <select
+                className="w-full border border-gray-300 rounded px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={paymentMethod}
+                onChange={(e) => {
+                  setPaymentMethod(e.target.value as 'CASH' | 'BANK' | 'CREDIT');
+                  if (e.target.value === 'CREDIT') {
+                    setReceivedAmount('');
+                  }
+                }}
+              >
+                <option value="CASH">Cash</option>
+                <option value="BANK">Bank</option>
+                <option value="CREDIT">Credit</option>
+              </select>
+            </div>
+
+            {paymentMethod !== 'CREDIT' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Received Amount</label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  value={receivedAmount}
+                  onChange={(e) => setReceivedAmount(e.target.value)}
+                  placeholder="Enter received amount"
+                  min={subtotal}
+                  step="0.01"
+                />
+              </div>
+            )}
           </div>
         </div>
 

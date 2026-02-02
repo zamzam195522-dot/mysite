@@ -87,7 +87,7 @@ export default function AddVendorPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
                 <input
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  placeholder="+92..."
+                  placeholder="+91..."
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                 />

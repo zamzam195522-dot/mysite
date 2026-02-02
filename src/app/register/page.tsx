@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SectionCard from '@/components/ui/SectionCard';
 import PageHeader from '@/components/ui/PageHeader';
 import { apiFetch } from '@/lib/api';
 
-type LoginResponse = {
+type RegisterResponse = {
   success: boolean;
   user?: {
     id: number;
@@ -15,22 +15,14 @@ type LoginResponse = {
   };
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Check if session expired and show appropriate message
-  useEffect(() => {
-    const sessionExpired = searchParams.get('session');
-    if (sessionExpired === 'expired') {
-      setError('Your session has expired. Please log in again.');
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,23 +33,38 @@ export default function LoginPage() {
       return;
     }
 
+    if (u.length < 3) {
+      setError('Username must be at least 3 characters.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
 
-      const res = await apiFetch<LoginResponse>('/api/auth/login', {
+      const res = await apiFetch<RegisterResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ username: u, password }),
       });
 
       if (!res.success) {
-        setError('Invalid credentials.');
+        setError('Registration failed. Username may already exist.');
         return;
       }
 
       router.push('/dashboard');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to login');
+      setError(e instanceof Error ? e.message : 'Failed to register');
     } finally {
       setIsSubmitting(false);
     }
@@ -67,11 +74,11 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-50 flex items-center justify-center py-10">
       <div className="w-full max-w-xl px-4 space-y-6">
         <PageHeader
-          title="Sign in to ZamZam Dashboard"
-          subtitle="Use your employee username and password to access the management system."
+          title="Create Account"
+          subtitle="Register to access the ZamZam management system."
         />
 
-        <SectionCard title="Login">
+        <SectionCard title="Register">
           {error ? (
             <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
@@ -83,7 +90,7 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
               <input
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                placeholder="Enter your username"
+                placeholder="Choose a username (min 3 characters)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
@@ -94,10 +101,23 @@ export default function LoginPage() {
               <input
                 type="password"
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                placeholder="Enter your password"
+                placeholder="Choose a password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
               />
             </div>
 
@@ -106,13 +126,13 @@ export default function LoginPage() {
               className="w-full bg-sky-900 text-white py-2 rounded text-sm font-semibold hover:bg-sky-800 disabled:opacity-60"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
+              {isSubmitting ? 'Creating account...' : 'Create Account'}
             </button>
 
             <p className="text-center text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-sky-900 font-medium hover:underline">
-                Register
+              Already have an account?{' '}
+              <Link href="/login" className="text-sky-900 font-medium hover:underline">
+                Sign in
               </Link>
             </p>
           </form>
@@ -121,4 +141,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

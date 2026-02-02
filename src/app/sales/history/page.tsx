@@ -6,6 +6,25 @@ import Footer from '@/components/Footer';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import { apiFetch } from '@/lib/api';
+import { printInvoice } from '@/lib/printInvoice';
+
+type InvoiceItem = {
+  invoiceId: number;
+  invoiceNo: string;
+  date: string;
+  customerId: number;
+  customer: string;
+  customerCode: string;
+  salesmanName?: string;
+  items: Array<{
+    productId: number;
+    product: string;
+    qty: number;
+    returnQty: number;
+    amount: number;
+  }>;
+  totalAmount: number;
+};
 
 export default function SalesHistoryPage() {
   const [fromDate, setFromDate] = useState<string>('');
@@ -13,9 +32,10 @@ export default function SalesHistoryPage() {
   const [customerId, setCustomerId] = useState<string>('');
 
   const [customers, setCustomers] = useState<Array<{ id: number; code: string; name: string; status: 'ACTIVE' | 'INACTIVE' }>>([]);
-  const [rows, setRows] = useState<Array<{ invoiceId: number; date: string; customerId: number; customer: string; productId: number; product: string; qty: number; amount: number }>>([]);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [isPrinting, setIsPrinting] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadCustomers = useCallback(async () => {
@@ -33,14 +53,26 @@ export default function SalesHistoryPage() {
       if (fromDate) qs.set('from', fromDate);
       if (toDate) qs.set('to', toDate);
       if (customerId) qs.set('customerId', customerId);
-      const res = await apiFetch<{ success: true; rows: typeof rows }>(`/api/sales-history${qs.toString() ? `?${qs.toString()}` : ''}`);
-      setRows(res.rows);
+      const res = await apiFetch<{ success: true; invoices: InvoiceItem[] }>(`/api/sales-history${qs.toString() ? `?${qs.toString()}` : ''}`);
+      setInvoices(res.invoices);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load sales history');
     } finally {
       setIsSearching(false);
     }
   }, [customerId, fromDate, toDate]);
+
+  const handlePrintInvoice = async (invoiceId: number) => {
+    try {
+      setIsPrinting(invoiceId);
+      const res = await apiFetch<{ success: true; invoiceData: any }>(`/api/invoice?invoiceId=${invoiceId}`);
+      printInvoice(res.invoiceData);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to print invoice');
+    } finally {
+      setIsPrinting(null);
+    }
+  };
 
   useEffect(() => {
     void (async () => {
@@ -105,34 +137,58 @@ export default function SalesHistoryPage() {
                   <tr>
                     <th className="px-3 py-2 text-left w-12">SNO</th>
                     <th className="px-3 py-2 text-left w-32">Date</th>
+                    <th className="px-3 py-2 text-left">Invoice No</th>
                     <th className="px-3 py-2 text-left">Customer</th>
-                    <th className="px-3 py-2 text-left">Product</th>
-                    <th className="px-3 py-2 text-left w-20">Qty</th>
-                    <th className="px-3 py-2 text-left w-24">Amount</th>
+                    <th className="px-3 py-2 text-left">Items</th>
+                    <th className="px-3 py-2 text-left w-24">Total Amount</th>
+                    <th className="px-3 py-2 text-left w-20">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {isLoading ? (
                     <tr>
-                      <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                      <td className="px-3 py-6 text-center text-gray-500" colSpan={7}>
                         Loading...
                       </td>
                     </tr>
-                  ) : rows.length === 0 ? (
+                  ) : invoices.length === 0 ? (
                     <tr>
-                      <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                      <td className="px-3 py-6 text-center text-gray-500" colSpan={7}>
                         No sales yet.
                       </td>
                     </tr>
                   ) : (
-                    rows.map((r, idx) => (
-                      <tr key={`${r.invoiceId}-${r.productId}`} className="hover:bg-gray-50">
+                    invoices.map((invoice, idx) => (
+                      <tr key={invoice.invoiceId} className="hover:bg-gray-50">
                         <td className="px-3 py-2">{idx + 1}</td>
-                        <td className="px-3 py-2">{r.date}</td>
-                        <td className="px-3 py-2">{r.customer}</td>
-                        <td className="px-3 py-2">{r.product}</td>
-                        <td className="px-3 py-2">{r.qty}</td>
-                        <td className="px-3 py-2">{r.amount}</td>
+                        <td className="px-3 py-2">{invoice.date}</td>
+                        <td className="px-3 py-2 font-medium">{invoice.invoiceNo}</td>
+                        <td className="px-3 py-2">
+                          <div>
+                            <div className="font-medium">{invoice.customer}</div>
+                            <div className="text-xs text-gray-500">{invoice.customerCode}</div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="text-xs">
+                            {invoice.items.map((item, itemIdx) => (
+                              <div key={itemIdx}>
+                                {item.product} ({item.qty} + {item.returnQty}R)
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 font-medium">{invoice.totalAmount}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-blue-500 disabled:opacity-60"
+                            type="button"
+                            onClick={() => handlePrintInvoice(invoice.invoiceId)}
+                            disabled={isPrinting === invoice.invoiceId}
+                          >
+                            {isPrinting === invoice.invoiceId ? 'Printing...' : 'Print'}
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}

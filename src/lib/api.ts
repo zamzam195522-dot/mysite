@@ -35,6 +35,13 @@ export async function apiFetch<T>(
   const body = text ? (safeJsonParse(text) ?? text) : null;
 
   if (!res.ok) {
+    // Handle session expiration (401 responses)
+    if (res.status === 401 && typeof window !== 'undefined') {
+      // Clear any stored session data and redirect to login
+      window.location.href = '/login?session=expired';
+      throw new ApiError('Session expired', 401, body);
+    }
+
     const message =
       typeof body === 'object' && body && 'message' in body
         ? String((body as any).message)

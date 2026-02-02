@@ -19,13 +19,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow the marketing/landing page without login.
-  if (pathname === '/') {
-    return NextResponse.next();
-  }
-
-  // Login page: redirect to dashboard if already logged in.
-  if (pathname === '/login') {
+  // Login and Register pages: redirect to dashboard if already logged in.
+  if (pathname === '/login' || pathname === '/register') {
     if (sessionCookie?.value) {
       const url = new URL('/dashboard', request.url);
       return NextResponse.redirect(url);

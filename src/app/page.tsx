@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
@@ -8,9 +9,65 @@ import DashboardPreview from '@/components/DashboardPreview';
 import InterfacePreview from '@/components/InterfacePreview';
 import Footer from '@/components/Footer';
 import ProductWindow from '@/components/ProductWindow';
+import { apiFetch } from '@/lib/api';
+
+type MeResponse = {
+  success: boolean;
+  user: any | null;
+};
 
 export default function Home() {
+  const router = useRouter();
   const [isProductWindowOpen, setIsProductWindowOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const res = await apiFetch<MeResponse>('/api/auth/me');
+        if (!isMounted) return;
+        setIsAuthenticated(Boolean(res.success && res.user));
+      } catch (error) {
+        if (!isMounted) return;
+        if (error instanceof Error && error.message.includes('Session expired')) {
+          // apiFetch will handle redirect to login
+          return;
+        }
+        setIsAuthenticated(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  // Show loading or nothing while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Don't render home page if not authenticated (will redirect)
+  if (isAuthenticated === false) {
+    return null;
+  }
 
   return (
     <main className="min-h-screen relative">

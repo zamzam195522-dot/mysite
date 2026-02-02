@@ -53,6 +53,16 @@ export function getSessionUser(request: NextRequest): SessionUser | null {
   try {
     const parsed = JSON.parse(raw) as SessionPayload;
     if (!parsed || typeof parsed.userId !== 'number' || !parsed.username) return null;
+
+    // Check if session has expired (8 hours = 8 * 60 * 60 * 1000 milliseconds)
+    const sessionDuration = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    const currentTime = Date.now();
+    const sessionAge = currentTime - parsed.issuedAt;
+
+    if (sessionAge > sessionDuration) {
+      return null; // Session expired
+    }
+
     return { id: parsed.userId, username: parsed.username };
   } catch {
     return null;

@@ -16,6 +16,8 @@ type NewSalesInvoiceRequest = {
   billNo?: string | null;
   billBookNo?: string | null;
   remarks?: string | null;
+  paymentMethod?: 'CASH' | 'BANK' | 'CREDIT';
+  receivedAmount?: number | null;
   items: NewSalesInvoiceItem[];
 };
 
@@ -120,6 +122,8 @@ export async function POST(request: Request) {
   const billNo = body.billNo === undefined || body.billNo === null ? null : String(body.billNo).trim();
   const billBookNo = body.billBookNo === undefined || body.billBookNo === null ? null : String(body.billBookNo).trim();
   const invoiceNoInput = body.invoiceNo === undefined || body.invoiceNo === null ? null : String(body.invoiceNo).trim();
+  const paymentMethod = body.paymentMethod || 'CASH';
+  const receivedAmount = body.receivedAmount ? Number(body.receivedAmount) : null;
 
   const items = body.items.map((i) => ({
     productId: Number(i.productId),
@@ -241,9 +245,97 @@ export async function POST(request: Request) {
       }
     }
 
+    // Process payment if not credit
+    let paymentId = null;
+    if (paymentMethod !== 'CREDIT' && receivedAmount) {
+      let bankId = null;
+
+      // For BANK payments, we need to provide a bank_id to satisfy the constraint
+      if (paymentMethod === 'BANK') {
+        const bankResult = await client.query(
+          'SELECT id FROM banks WHERE status = $1 ORDER BY id LIMIT 1',
+          ['ACTIVE']
+        );
+
+        if (bankResult.rows.length === 0) {
+          throw new Error('No active bank found in the system. Please add a bank first.');
+        }
+
+        bankId = bankResult.rows[0].id;
+      }
+
+      const paymentResult = await client.query(
+        `
+        INSERT INTO customer_payments (
+          customer_id, receiver_employee_id, payment_date, method,
+          bank_id, received_amount, status, created_by_user_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, 'POSTED', NULL)
+        RETURNING id
+        `,
+        [customerId, salesmanEmployeeId, orderDate, paymentMethod, bankId, receivedAmount],
+      );
+      paymentId = paymentResult.rows[0].id;
+
+      // Create payment allocation for this invoice
+      await client.query(
+        `
+        INSERT INTO customer_payment_allocations (
+          payment_id, invoice_id, allocated_amount
+        )
+        VALUES ($1, $2, $3)
+        `,
+        [paymentId, invoiceId, receivedAmount],
+      );
+    }
+
     await client.query('COMMIT');
 
-    return NextResponse.json({ success: true, invoiceId, invoiceNo });
+    // Get complete invoice data for printing
+    const invoiceDataResult = await pool.query(
+      `
+      SELECT 
+        si.invoice_no AS "invoiceNo",
+        si.order_date AS "orderDate",
+        si.bill_book_no AS "billBookNo",
+        c.code AS "customerCode",
+        c.name AS "customerName",
+        e.name AS "salesmanName",
+        si.subtotal_amount AS "subtotalAmount",
+        si.total_amount AS "totalAmount"
+      FROM sales_invoices si
+      JOIN customers c ON c.id = si.customer_id
+      LEFT JOIN employees e ON e.id = si.salesman_employee_id
+      WHERE si.id = $1
+      `,
+      [invoiceId],
+    );
+
+    // Get invoice items for printing
+    const itemsResult = await pool.query(
+      `
+      SELECT 
+        p.name AS "productName",
+        sii.unit_price AS "unitPrice",
+        sii.sale_qty AS "saleQty",
+        sii.return_qty AS "returnQty",
+        sii.line_amount AS "lineAmount"
+      FROM sales_invoice_items sii
+      JOIN products p ON p.id = sii.product_id
+      WHERE sii.invoice_id = $1
+      ORDER BY sii.line_no
+      `,
+      [invoiceId],
+    );
+
+    const invoiceData = {
+      ...invoiceDataResult.rows[0],
+      items: itemsResult.rows,
+      paymentMethod,
+      receivedAmount,
+    };
+
+    return NextResponse.json({ success: true, invoiceId, invoiceNo, invoiceData });
   } catch (e: any) {
     await client.query('ROLLBACK');
     return NextResponse.json(

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import type { SessionUser } from '@/lib/auth';
 
@@ -48,6 +49,16 @@ export default function Header(_props: HeaderProps) {
     }, 150);
   };
 
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+      setIsAuthenticated(false);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   // Detect if user is already logged in so we can show Home instead of Login/Register
   useEffect(() => {
     let isMounted = true;
@@ -57,8 +68,13 @@ export default function Header(_props: HeaderProps) {
         const res = await apiFetch<MeResponse>('/api/auth/me');
         if (!isMounted) return;
         setIsAuthenticated(Boolean(res.success && res.user));
-      } catch {
+      } catch (error) {
         if (!isMounted) return;
+        // If we get a 401, the session has expired
+        if (error instanceof Error && error.message.includes('Session expired')) {
+          // The apiFetch will handle redirect to login
+          return;
+        }
         setIsAuthenticated(false);
       }
     })();
@@ -92,6 +108,7 @@ export default function Header(_props: HeaderProps) {
         children: [
           { label: 'Add Employee', href: '/employees/add' },
           { label: 'Manage Employees', href: '/employees/manage' },
+          { label: 'Areas Management', href: '/employees/areas' },
           { label: 'Assign Areas', href: '/employees/assign-areas' },
         ],
       },
@@ -141,7 +158,6 @@ export default function Header(_props: HeaderProps) {
         key: 'settings',
         label: 'Settings',
         children: [
-          { label: 'Areas Management', href: '/settings/areas' },
           { label: 'Banks', href: '/settings/banks' },
           { label: 'Price Settings', href: '/settings/price' },
           { label: 'User Roles', href: '/settings/roles' },
@@ -157,24 +173,26 @@ export default function Header(_props: HeaderProps) {
       <nav className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                />
-              </svg>
-            </div>
-            <span className="text-xl md:text-2xl font-bold text-gray-800">
-              ZamZam Industries 
-            </span>
+            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                  />
+                </svg>
+              </div>
+              <span className="text-xl md:text-2xl font-bold text-gray-800">
+                ZamZam Industries
+              </span>
+            </Link>
           </div>
 
           {/* Desktop Menu */}
@@ -230,21 +248,39 @@ export default function Header(_props: HeaderProps) {
               ),
             )}
             {isAuthenticated ? (
-              <button
-                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                type="button"
-                onClick={() => router.push('/dashboard')}
-              >
-                Home
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  className="text-primary font-medium hover:underline"
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  Dashboard
+                </button>
+                <button
+                  className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  type="button"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
-              <button
-                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                type="button"
-                onClick={() => router.push('/login')}
-              >
-                Login / Register
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  className="text-primary font-medium hover:underline"
+                  type="button"
+                  onClick={() => router.push('/login')}
+                >
+                  Login
+                </button>
+                <button
+                  className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                  type="button"
+                  onClick={() => router.push('/register')}
+                >
+                  Register
+                </button>
+              </div>
             )}
           </div>
 
@@ -292,9 +328,8 @@ export default function Header(_props: HeaderProps) {
                   >
                     {item.label}
                     <svg
-                      className={`w-4 h-4 transition-transform ${
-                        openMobileDropdownKey === item.key ? 'rotate-180' : ''
-                      }`}
+                      className={`w-4 h-4 transition-transform ${openMobileDropdownKey === item.key ? 'rotate-180' : ''
+                        }`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -329,27 +364,51 @@ export default function Header(_props: HeaderProps) {
               ),
             )}
             {isAuthenticated ? (
-              <button
-                className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4"
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  router.push('/dashboard');
-                }}
-              >
-                Home
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  className="flex-1 text-primary font-medium py-2 hover:underline"
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push('/dashboard');
+                  }}
+                >
+                  Dashboard
+                </button>
+                <button
+                  className="flex-1 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
-              <button
-                className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4"
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  router.push('/login');
-                }}
-              >
-                Login / Register
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  className="flex-1 text-primary font-medium py-2 hover:underline"
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push('/login');
+                  }}
+                >
+                  Login
+                </button>
+                <button
+                  className="flex-1 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push('/register');
+                  }}
+                >
+                  Register
+                </button>
+              </div>
             )}
           </div>
         )}

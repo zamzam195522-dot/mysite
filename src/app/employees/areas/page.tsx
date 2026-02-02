@@ -121,7 +121,7 @@ export default function AreasManagementPage() {
       <Header />
       <section className="py-10">
         <div className="container mx-auto px-4 space-y-6">
-          <PageHeader title="Areas Management" subtitle="Create and manage delivery areas." />
+          <PageHeader title="Areas Management" subtitle="Create and manage delivery areas for employee assignments." />
 
           {error ? (
             <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -293,4 +293,3 @@ export default function AreasManagementPage() {
     </main>
   );
 }
-
