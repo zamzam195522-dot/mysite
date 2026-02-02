@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SectionCard from '@/components/ui/SectionCard';
@@ -19,12 +19,17 @@ type RegisterResponse = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +54,9 @@ export default function RegisterPage() {
       setError('Passwords do not match.');
       return;
     }
+
+    // Ensure we're on client side and mounted
+    if (!mounted || typeof window === 'undefined') return;
 
     try {
       setIsSubmitting(true);

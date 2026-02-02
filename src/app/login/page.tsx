@@ -20,19 +20,25 @@ type LoginResponse = {
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Check if session expired and show appropriate message
   useEffect(() => {
+    if (!mounted) return;
     const sessionExpired = searchParams.get('session');
     if (sessionExpired === 'expired') {
       setError('Your session has expired. Please log in again.');
     }
-  }, [searchParams]);
+  }, [searchParams, mounted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +48,9 @@ export default function LoginPage() {
       setError('Please enter username and password.');
       return;
     }
+
+    // Ensure we're on client side and mounted
+    if (!mounted || typeof window === 'undefined') return;
 
     try {
       setIsSubmitting(true);
