@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/api';
+import type { SessionUser } from '@/lib/auth';
 
 type HeaderProps = {
   onProductClick?: () => void; // kept for backward compatibility (home modal etc.)
@@ -14,11 +16,57 @@ type NavItem = {
   children?: { label: string; href: string }[];
 };
 
+type MeResponse = {
+  success: boolean;
+  user: SessionUser | null;
+};
+
 export default function Header(_props: HeaderProps) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDesktopDropdownKey, setOpenDesktopDropdownKey] = useState<string | null>(null);
   const [openMobileDropdownKey, setOpenMobileDropdownKey] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Small delay so dropdown doesn't disappear instantly when moving the mouse
+  const closeDesktopDropdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDesktopDropdownOpen = (key: string) => {
+    if (closeDesktopDropdownTimeoutRef.current) {
+      clearTimeout(closeDesktopDropdownTimeoutRef.current);
+      closeDesktopDropdownTimeoutRef.current = null;
+    }
+    setOpenDesktopDropdownKey(key);
+  };
+
+  const handleDesktopDropdownClose = () => {
+    if (closeDesktopDropdownTimeoutRef.current) {
+      clearTimeout(closeDesktopDropdownTimeoutRef.current);
+    }
+    closeDesktopDropdownTimeoutRef.current = setTimeout(() => {
+      setOpenDesktopDropdownKey(null);
+    }, 150);
+  };
+
+  // Detect if user is already logged in so we can show Home instead of Login/Register
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const res = await apiFetch<MeResponse>('/api/auth/me');
+        if (!isMounted) return;
+        setIsAuthenticated(Boolean(res.success && res.user));
+      } catch {
+        if (!isMounted) return;
+        setIsAuthenticated(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -136,8 +184,8 @@ export default function Header(_props: HeaderProps) {
                 <div
                   key={item.key}
                   className="relative"
-                  onMouseEnter={() => setOpenDesktopDropdownKey(item.key)}
-                  onMouseLeave={() => setOpenDesktopDropdownKey(null)}
+                  onMouseEnter={() => handleDesktopDropdownOpen(item.key)}
+                  onMouseLeave={handleDesktopDropdownClose}
                 >
                   <a
                     href={item.href ?? '#'}
@@ -154,7 +202,11 @@ export default function Header(_props: HeaderProps) {
                   </a>
 
                   {openDesktopDropdownKey === item.key ? (
-                    <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                    <div
+                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                      onMouseEnter={() => handleDesktopDropdownOpen(item.key)}
+                      onMouseLeave={handleDesktopDropdownClose}
+                    >
                       {item.children.map((child) => (
                         <a
                           key={child.href}
@@ -177,13 +229,23 @@ export default function Header(_props: HeaderProps) {
                 </a>
               ),
             )}
-            <button
-              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-              type="button"
-              onClick={() => router.push('/login')}
-            >
-              Login
-            </button>
+            {isAuthenticated ? (
+              <button
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                type="button"
+                onClick={() => router.push('/dashboard')}
+              >
+                Home
+              </button>
+            ) : (
+              <button
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                type="button"
+                onClick={() => router.push('/login')}
+              >
+                Login / Register
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -266,16 +328,29 @@ export default function Header(_props: HeaderProps) {
                 </a>
               ),
             )}
-            <button
-              className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4"
-              type="button"
-              onClick={() => {
-                setIsMenuOpen(false);
-                router.push('/login');
-              }}
-            >
-              Login
-            </button>
+            {isAuthenticated ? (
+              <button
+                className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4"
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  router.push('/dashboard');
+                }}
+              >
+                Home
+              </button>
+            ) : (
+              <button
+                className="w-full bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors mt-4"
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  router.push('/login');
+                }}
+              >
+                Login / Register
+              </button>
+            )}
           </div>
         )}
       </nav>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SectionCard from '@/components/ui/SectionCard';
@@ -18,14 +18,11 @@ type LoginResponse = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const from = searchParams.get('from') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +47,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(from || '/dashboard');
+      router.push('/dashboard');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to login');
     } finally {
