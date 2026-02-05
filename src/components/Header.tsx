@@ -116,6 +116,7 @@ export default function Header(_props: HeaderProps) {
         key: 'customers',
         label: 'Customers',
         children: [
+          { label: 'Customer Pricing', href: '/customers' },
           { label: 'Add Customer', href: '/customers/add' },
           { label: 'Manage Customers', href: '/customers/manage' },
           { label: 'Customer Ledger', href: '/customers/ledger' },
