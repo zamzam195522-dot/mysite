@@ -41,7 +41,7 @@ export default function NewOrder() {
   const [receivedAmount, setReceivedAmount] = useState<string>('');
 
   // Cache for resolved prices to avoid repeated API calls
-  const [priceCache, setPriceCache] = useState<Map<string, { price: number; source: string }>>(new Map());
+  const [priceCache, setPriceCache] = useState<Map<string, { price: number; source: 'CUSTOMER' | 'DEFAULT' | 'NONE' }>>(new Map());
   const [currentPriceSource, setCurrentPriceSource] = useState<'CUSTOMER' | 'DEFAULT' | 'NONE' | null>(null);
 
   const load = async () => {
