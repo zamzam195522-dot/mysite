@@ -40,6 +40,10 @@ export default function NewOrder() {
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'BANK' | 'CREDIT'>('CASH');
   const [receivedAmount, setReceivedAmount] = useState<string>('');
 
+  // Cache for resolved prices to avoid repeated API calls
+  const [priceCache, setPriceCache] = useState<Map<string, { price: number; source: string }>>(new Map());
+  const [currentPriceSource, setCurrentPriceSource] = useState<'CUSTOMER' | 'DEFAULT' | 'NONE' | null>(null);
+
   const load = async () => {
     try {
       setError(null);
@@ -72,6 +76,13 @@ export default function NewOrder() {
     void load();
   }, []);
 
+  // Clear price cache when customer changes to ensure fresh pricing
+  useEffect(() => {
+    // Clear all cache entries when customer changes
+    setPriceCache(new Map());
+    setCurrentPriceSource(null);
+  }, [customerId]);
+
   const productNameById = useMemo(() => {
     const m = new Map<number, string>();
     products.forEach((p) => m.set(p.id, p.name));
@@ -94,15 +105,35 @@ export default function NewOrder() {
 
   const resolvePrice = async (cid: string, pid: string) => {
     if (!pid) return;
+
+    const cacheKey = `${cid}-${pid}`;
+
+    // Check cache first
+    if (priceCache.has(cacheKey)) {
+      const cached = priceCache.get(cacheKey)!;
+      setUnitPrice(String(cached.price));
+      setCurrentPriceSource(cached.source);
+      return;
+    }
+
     try {
       const qs = new URLSearchParams({ productId: pid });
       if (cid) qs.set('customerId', cid);
       const res = await apiFetch<{ success: true; price: number; source: 'CUSTOMER' | 'DEFAULT' | 'NONE' }>(
         `/api/pricing?${qs.toString()}`,
       );
-      setUnitPrice(String(res.price ?? 0));
+
+      const priceData = { price: res.price ?? 0, source: res.source as 'CUSTOMER' | 'DEFAULT' | 'NONE' };
+
+      // Update cache
+      setPriceCache(prev => new Map(prev).set(cacheKey, priceData));
+
+      // Update unit price and source
+      setUnitPrice(String(priceData.price));
+      setCurrentPriceSource(priceData.source);
     } catch {
       // ignore; user can type price manually
+      setCurrentPriceSource(null);
     }
   };
 
@@ -270,11 +301,23 @@ export default function NewOrder() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Customer-wise Price</label>
-              <input
-                className="w-full border border-yellow-300 bg-yellow-50 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  className="w-full border border-yellow-300 bg-yellow-50 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                />
+                {currentPriceSource && (
+                  <div className={`absolute -top-2 -right-2 px-2 py-1 text-xs font-semibold rounded ${currentPriceSource === 'CUSTOMER'
+                    ? 'bg-green-100 text-green-800 border border-green-300'
+                    : currentPriceSource === 'DEFAULT'
+                      ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                      : 'bg-gray-100 text-gray-800 border border-gray-300'
+                    }`}>
+                    {currentPriceSource}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
