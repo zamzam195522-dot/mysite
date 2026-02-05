@@ -4,6 +4,7 @@ const path = require('path');
 const nextConfig = {
   output: 'standalone', // For Docker deployment
   reactStrictMode: true,
+  turbopack: {}, // Enable Turbopack with empty config
   webpack: (config) => {
     // Ensure `@/...` imports work reliably in all environments (Linux/cPanel included)
     config.resolve = config.resolve || {};

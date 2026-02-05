@@ -16,8 +16,9 @@ function parseId(params: Params) {
   return id;
 }
 
-export async function GET(_request: Request, context: { params: Params }) {
-  const id = parseId(context.params);
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const id = parseId(resolvedParams);
   if (!id) return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
 
   const pool = getDbPool();
@@ -28,8 +29,9 @@ export async function GET(_request: Request, context: { params: Params }) {
   return NextResponse.json({ success: true, vendor });
 }
 
-export async function PATCH(request: Request, context: { params: Params }) {
-  const id = parseId(context.params);
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const id = parseId(resolvedParams);
   if (!id) return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
 
   let body: UpdateVendorRequest;
@@ -90,8 +92,9 @@ export async function PATCH(request: Request, context: { params: Params }) {
   return NextResponse.json({ success: true, vendor });
 }
 
-export async function DELETE(_request: Request, context: { params: Params }) {
-  const id = parseId(context.params);
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const id = parseId(resolvedParams);
   if (!id) return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
 
   const pool = getDbPool();

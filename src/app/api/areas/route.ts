@@ -6,6 +6,10 @@ type NewAreaRequest = {
   status?: 'ACTIVE' | 'INACTIVE';
 };
 
+type UpdateAreaRequest = NewAreaRequest & {
+  id: number;
+};
+
 export async function GET() {
   const pool = getDbPool();
   const result = await pool.query(
@@ -50,22 +54,22 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true, area: result.rows[0] });
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-  let body: Partial<NewAreaRequest>;
+export async function PATCH(request: Request) {
+  let body: Partial<UpdateAreaRequest>;
   try {
-    body = (await request.json()) as Partial<NewAreaRequest>;
+    body = (await request.json()) as Partial<UpdateAreaRequest>;
   } catch {
     return NextResponse.json({ success: false, message: 'Invalid request body' }, { status: 400 });
   }
 
-  if (!body.name) {
+  if (!body.name || !body.id) {
     return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
   }
 
+  const id = Number(body.id);
   const name = String(body.name).trim();
-  if (!name) {
-    return NextResponse.json({ success: false, message: 'Invalid name' }, { status: 400 });
+  if (!name || !Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ success: false, message: 'Invalid input' }, { status: 400 });
   }
 
   const status = body.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE';
@@ -88,8 +92,19 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json({ success: true, area: result.rows[0] });
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function DELETE(request: Request) {
+  let body: { id: number };
+  try {
+    body = (await request.json()) as { id: number };
+  } catch {
+    return NextResponse.json({ success: false, message: 'Invalid request body' }, { status: 400 });
+  }
+
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ success: false, message: 'Invalid id' }, { status: 400 });
+  }
+
   const pool = getDbPool();
 
   try {

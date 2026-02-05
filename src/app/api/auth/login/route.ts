@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool } from '@/lib/db';
-import { createHash } from 'crypto';
-import { attachSessionCookie, createSessionPayload } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
+import { attachSessionCookie, createSessionToken } from '@/lib/auth';
 
 type LoginRequest = {
   username?: string;
   password?: string;
 };
 
-function hashPassword(password: string) {
-  // Must match the hashing logic used when creating users/employees.
-  return createHash('sha256').update(password).digest('hex');
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return await bcrypt.compare(password, hash);
 }
 
 export async function POST(request: NextRequest) {
@@ -57,8 +56,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
   }
 
-  const candidateHash = hashPassword(password);
-  if (user.password_hash !== candidateHash) {
+  const passwordMatch = await verifyPassword(password, user.password_hash);
+  if (!passwordMatch) {
     return NextResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
   }
 
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
 
   return attachSessionCookie(
     response,
-    createSessionPayload({ id: Number(user.id), username: user.username, roles: user.roles }),
+    await createSessionToken({ id: Number(user.id), username: user.username, roles: user.roles }),
   );
 }
 

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SignJWT, jwtVerify } from 'jose';
 
 export const SESSION_COOKIE_NAME = 'water_session';
+
+// JWT secret key - should be stored in environment variables
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+);
 
 export type SessionUser = {
   id: number;
@@ -8,28 +14,35 @@ export type SessionUser = {
   roles: string[];
 };
 
-type SessionPayload = {
+type JWTPayload = {
   userId: number;
   username: string;
   roles: string[];
   issuedAt: number;
+  exp: number;
 };
 
-export function createSessionPayload(user: SessionUser): SessionPayload {
-  return {
+export async function createSessionToken(user: SessionUser): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + (8 * 60 * 60); // 8 hours expiration
+
+  return await new SignJWT({
     userId: user.id,
     username: user.username,
     roles: user.roles,
-    issuedAt: Date.now(),
-  };
+    issuedAt: now * 1000, // Keep milliseconds for compatibility
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt(now)
+    .setExpirationTime(exp)
+    .sign(JWT_SECRET);
 }
 
 export function attachSessionCookie(
   response: NextResponse,
-  payload: SessionPayload,
+  token: string,
 ): NextResponse {
-  // Minimal JSON cookie; for production you should sign & encrypt this value.
-  response.cookies.set(SESSION_COOKIE_NAME, JSON.stringify(payload), {
+  response.cookies.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
@@ -50,23 +63,23 @@ export function clearSessionCookie(response: NextResponse): NextResponse {
   return response;
 }
 
-export function getSessionUser(request: NextRequest): SessionUser | null {
-  const raw = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!raw) return null;
+export async function getSessionUser(request: NextRequest): Promise<SessionUser | null> {
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) return null;
+
   try {
-    const parsed = JSON.parse(raw) as SessionPayload;
-    if (!parsed || typeof parsed.userId !== 'number' || !parsed.username || !Array.isArray(parsed.roles)) return null;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const jwtPayload = payload as JWTPayload;
 
-    // Check if session has expired (8 hours = 8 * 60 * 60 * 1000 milliseconds)
-    const sessionDuration = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-    const currentTime = Date.now();
-    const sessionAge = currentTime - parsed.issuedAt;
-
-    if (sessionAge > sessionDuration) {
-      return null; // Session expired
+    if (!jwtPayload || typeof jwtPayload.userId !== 'number' || !jwtPayload.username || !Array.isArray(jwtPayload.roles)) {
+      return null;
     }
 
-    return { id: parsed.userId, username: parsed.username, roles: parsed.roles };
+    return {
+      id: jwtPayload.userId,
+      username: jwtPayload.username,
+      roles: jwtPayload.roles
+    };
   } catch {
     return null;
   }

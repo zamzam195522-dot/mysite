@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   const pool = getDbPool();
 
   if (employee_id) {
-    console.log('Fetching assigned areas for employee_id:', employee_id);
 
     // First, let's check if the employee exists and is a salesman
     const employeeCheck = await pool.query(
@@ -16,7 +15,6 @@ export async function GET(request: Request) {
       [employee_id]
     );
 
-    console.log('Employee check result:', employeeCheck.rows);
 
     // Get assigned areas for a specific employee with customer counts
     const result = await pool.query(
@@ -35,7 +33,6 @@ export async function GET(request: Request) {
       [employee_id],
     );
 
-    console.log('Assigned areas query result:', result.rows);
 
     const assignedAreas = result.rows.map(row => ({
       id: row.id,
@@ -46,7 +43,6 @@ export async function GET(request: Request) {
     // Also return just the area IDs for checkbox selection
     const assignedAreaIds = result.rows.map(row => row.id.toString());
 
-    console.log('Final response:', { assignedAreas, assignedAreaIds });
 
     return NextResponse.json({ success: true, assignedAreas, assignedAreaIds });
   } else {
@@ -79,7 +75,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: 'Invalid request body' }, { status: 400 });
   }
 
-  console.log('POST request body:', body);
 
   if (!body.employee_id || !body.area_id) {
     return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -94,7 +89,6 @@ export async function POST(request: Request) {
       [body.employee_id, body.area_id],
     );
 
-    console.log('Existing assignment check:', existingAssignment.rows);
 
     if (existingAssignment.rows.length > 0) {
       return NextResponse.json({ success: false, message: 'Area already assigned to this employee' }, { status: 400 });
@@ -106,11 +100,9 @@ export async function POST(request: Request) {
       [body.employee_id, body.area_id],
     );
 
-    console.log('Assignment created:', result.rows[0]);
 
     return NextResponse.json({ success: true, assignment: result.rows[0] });
   } catch (e: any) {
-    console.error('Error creating assignment:', e);
     return NextResponse.json(
       { success: false, message: e?.message ? String(e.message) : 'Failed to assign area' },
       { status: 400 },

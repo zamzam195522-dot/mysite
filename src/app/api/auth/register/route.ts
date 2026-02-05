@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPool } from '@/lib/db';
-import { createHash } from 'crypto';
-import { attachSessionCookie, createSessionPayload } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
+import { attachSessionCookie, createSessionToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +10,9 @@ type RegisterRequest = {
   password?: string;
 };
 
-function hashPassword(password: string) {
-  return createHash('sha256').update(password).digest('hex');
+async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
 }
 
 export async function POST(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const pool = getDbPool();
-  const passwordHash = hashPassword(password);
+  const passwordHash = await hashPassword(password);
 
   try {
     const result = await pool.query(
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return attachSessionCookie(
       response,
-      createSessionPayload({ id: Number(user.id), username: user.username, roles }),
+      await createSessionToken({ id: Number(user.id), username: user.username, roles }),
     );
   } catch (err: unknown) {
     const pgErr = err as { code?: string };

@@ -47,7 +47,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   // Check admin authorization
-  const authResult = requireAdmin(getSessionUser(request as any));
+  const user = await getSessionUser(request as any);
+  const authResult = requireAdmin(user);
   if (!authResult.authorized) {
     return NextResponse.json(
       { success: false, message: authResult.error },

@@ -9,8 +9,9 @@ function parseId(params: Params) {
   return id;
 }
 
-export async function GET(request: Request, context: { params: Params }) {
-  const vendorId = parseId(context.params);
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const vendorId = parseId(resolvedParams);
   if (!vendorId) return NextResponse.json({ success: false, message: 'Invalid vendor id' }, { status: 400 });
 
   const url = new URL(request.url);

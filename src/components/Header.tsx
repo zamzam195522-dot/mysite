@@ -55,7 +55,7 @@ export default function Header(_props: HeaderProps) {
       setIsAuthenticated(false);
       router.push('/login');
     } catch (error) {
-      console.error('Logout failed:', error);
+      // Logout failed
     }
   };
 

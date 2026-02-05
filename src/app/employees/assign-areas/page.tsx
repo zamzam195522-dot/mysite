@@ -125,7 +125,7 @@ export default function AssignAreasPage() {
         setSelectedAreas(data.assignedAreaIds || []);
       }
     } catch (err) {
-      console.error('Failed to fetch assigned areas:', err);
+      // Failed to fetch assigned areas
     }
   };
 

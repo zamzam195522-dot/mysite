@@ -44,7 +44,7 @@ export default function CustomersPage() {
         setProducts(data.products);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      // Error fetching products
     }
   };
 
@@ -56,7 +56,7 @@ export default function CustomersPage() {
         setCustomerPrices(data.prices);
       }
     } catch (error) {
-      console.error('Error fetching customer prices:', error);
+      // Error fetching customer prices
     }
   };
 
@@ -92,7 +92,7 @@ export default function CustomersPage() {
         alert('Error: ' + data.message);
       }
     } catch (error) {
-      console.error('Error setting customer price:', error);
+      // Error setting customer price
       alert('Error setting customer price');
     }
   };

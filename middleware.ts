@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME, getSessionUser, isAdmin } from './src/lib/auth';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
 
@@ -60,7 +60,7 @@ export function middleware(request: NextRequest) {
     const isAdminEndpoint = adminOnlyEndpoints.some(endpoint => pathname.startsWith(endpoint));
 
     if (isAdminEndpoint) {
-      const user = getSessionUser(request);
+      const user = await getSessionUser(request);
       if (!user || !isAdmin(user)) {
         return new NextResponse(
           JSON.stringify({ success: false, message: 'Admin access required' }),
