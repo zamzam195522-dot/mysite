@@ -16,6 +16,10 @@ export interface InvoiceData {
   }>;
   paymentMethod?: string;
   receivedAmount?: number;
+  mobileNumbers?: string[];
+  upiId?: string;
+  qrCode?: string;
+  gstNo?: string;
 }
 
 export const printInvoice = (invoiceData: InvoiceData) => {
@@ -88,6 +92,24 @@ export const printInvoice = (invoiceData: InvoiceData) => {
           .payment-info p { 
             margin: 5px 0; 
           }
+          .contact-info {
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+          }
+          .contact-info p {
+            margin: 5px 0;
+          }
+          .qr-code {
+            text-align: center;
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+          }
+          .qr-code img {
+            max-width: 150px;
+            height: auto;
+          }
           @media print {
             body { margin: 10px; }
             .no-print { display: none; }
@@ -155,6 +177,19 @@ export const printInvoice = (invoiceData: InvoiceData) => {
           <p><strong>Payment Method:</strong> ${invoiceData.paymentMethod || 'N/A'}</p>
           ${invoiceData.receivedAmount ? `<p><strong>Received Amount:</strong> ${Number(invoiceData.receivedAmount).toFixed(2)}</p>` : ''}
         </div>
+        
+        <div class="contact-info">
+          <p><strong>Mobile Numbers:</strong> ${invoiceData.mobileNumbers ? invoiceData.mobileNumbers.join(', ') : 'N/A'}</p>
+          <p><strong>UPI ID:</strong> ${invoiceData.upiId || 'N/A'}</p>
+          <p><strong>GST No:</strong> ${invoiceData.gstNo || 'N/A'}</p>
+        </div>
+        
+        ${invoiceData.qrCode ? `
+        <div class="qr-code">
+          <p><strong>Scan to Pay:</strong></p>
+          <img src="${invoiceData.qrCode}" alt="Payment QR Code" />
+        </div>
+        ` : ''}
       </body>
     </html>
   `;
