@@ -249,36 +249,51 @@ export default function Header(_props: HeaderProps) {
             )}
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <button
-                  className="text-primary font-medium hover:underline"
-                  type="button"
-                  onClick={() => router.push('/dashboard')}
+                <div
+                  className="relative"
+                  onMouseEnter={() => handleDesktopDropdownOpen('profile')}
+                  onMouseLeave={handleDesktopDropdownClose}
                 >
-                  Dashboard
-                </button>
-                <button
-                  className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  type="button"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </button>
+                  <button
+                    className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
+                    type="button"
+                  >
+                    Profile
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {openDesktopDropdownKey === 'profile' ? (
+                    <div
+                      className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                      onMouseEnter={() => handleDesktopDropdownOpen('profile')}
+                      onMouseLeave={handleDesktopDropdownClose}
+                    >
+                      <a
+                        href="/dashboard"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
+                      >
+                        Dashboard
+                      </a>
+                      <button
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors"
+                        onClick={handleLogout}
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
                 <button
-                  className="text-primary font-medium hover:underline"
+                  className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
                   type="button"
                   onClick={() => router.push('/login')}
                 >
                   Login
-                </button>
-                <button
-                  className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                  type="button"
-                  onClick={() => router.push('/register')}
-                >
-                  Register
                 </button>
               </div>
             )}
@@ -365,31 +380,51 @@ export default function Header(_props: HeaderProps) {
             )}
             {isAuthenticated ? (
               <div className="flex gap-3 mt-4">
-                <button
-                  className="flex-1 text-primary font-medium py-2 hover:underline"
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    router.push('/dashboard');
-                  }}
-                >
-                  Dashboard
-                </button>
-                <button
-                  className="flex-1 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    handleLogout();
-                  }}
-                >
-                  Logout
-                </button>
+                <div>
+                  <button
+                    className="flex-1 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+                    type="button"
+                    onClick={() =>
+                      setOpenMobileDropdownKey((prev) => (prev === 'profile' ? null : 'profile'))
+                    }
+                  >
+                    Profile
+                    <svg
+                      className={`w-4 h-4 transition-transform ${openMobileDropdownKey === 'profile' ? 'rotate-180' : ''
+                        }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {openMobileDropdownKey === 'profile' ? (
+                    <div className="pl-4 mt-2 space-y-1">
+                      <a
+                        href="/dashboard"
+                        className="block py-2 text-sm text-gray-600 hover:text-primary transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Dashboard
+                      </a>
+                      <button
+                        className="block w-full text-left py-2 text-sm text-gray-600 hover:text-red-600 transition-colors"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          handleLogout();
+                        }}
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <div className="flex gap-3 mt-4">
                 <button
-                  className="flex-1 text-primary font-medium py-2 hover:underline"
+                  className="flex-1 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
                   type="button"
                   onClick={() => {
                     setIsMenuOpen(false);
@@ -397,16 +432,6 @@ export default function Header(_props: HeaderProps) {
                   }}
                 >
                   Login
-                </button>
-                <button
-                  className="flex-1 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    router.push('/register');
-                  }}
-                >
-                  Register
                 </button>
               </div>
             )}
