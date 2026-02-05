@@ -107,8 +107,8 @@ export default function SetProductPricePage() {
   };
 
   const setOrUpdate = async () => {
-    if (!selectedCustomerId) {
-      setError('Select a customer first.');
+    if (!selectedCustomerId || !Number.isInteger(selectedCustomerId) || selectedCustomerId <= 0) {
+      setError('Select a valid customer first.');
       return;
     }
     const pid = Number(productId);
@@ -176,10 +176,15 @@ export default function SetProductPricePage() {
                     onChange={(e) => {
                       const v = e.target.value;
                       const id = v ? Number(v) : null;
-                      setSelectedCustomerId(id && Number.isInteger(id) ? id : null);
-                      setMessage(null);
-                      setError(null);
-                      if (id) void loadCustomerPrices(id);
+                      // Better validation for customer ID
+                      if (id && Number.isInteger(id) && id > 0) {
+                        setSelectedCustomerId(id);
+                        setMessage(null);
+                        setError(null);
+                        void loadCustomerPrices(id);
+                      } else {
+                        setSelectedCustomerId(null);
+                      }
                     }}
                     disabled={isLoading}
                   >
