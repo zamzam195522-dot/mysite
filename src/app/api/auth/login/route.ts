@@ -13,6 +13,10 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 }
 
 export async function POST(request: NextRequest) {
+  // Debug: Check JWT_SECRET
+  console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  console.log('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
+
   let body: LoginRequest;
   try {
     body = (await request.json()) as LoginRequest;
