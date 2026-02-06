@@ -5,6 +5,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
 
+  // Debug: Log all API requests
+  if (pathname.startsWith('/api/')) {
+    console.log(`Middleware: ${request.method} ${pathname}`);
+    console.log('Middleware: Has session cookie:', !!sessionCookie?.value);
+  }
+
   // Always allow Next.js internals and static assets.
   if (
     pathname.startsWith('/_next') ||
@@ -16,20 +22,12 @@ export async function middleware(request: NextRequest) {
 
   // Allow auth endpoints without a session.
   if (pathname.startsWith('/api/auth/')) {
+    console.log('Middleware: Allowing auth endpoint:', pathname);
     return NextResponse.next();
   }
 
   // Allow debug endpoints for troubleshooting.
   if (pathname.startsWith('/api/debug/')) {
-    return NextResponse.next();
-  }
-
-  // Login and Register pages: redirect to dashboard if already logged in.
-  if (pathname === '/login' || pathname === '/register') {
-    if (sessionCookie?.value) {
-      const url = new URL('/dashboard', request.url);
-      return NextResponse.redirect(url);
-    }
     return NextResponse.next();
   }
 
@@ -77,6 +75,15 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    return NextResponse.next();
+  }
+
+  // Login and Register pages: redirect to dashboard if already logged in.
+  if (pathname === '/login' || pathname === '/register') {
+    if (sessionCookie?.value) {
+      const url = new URL('/dashboard', request.url);
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
 
