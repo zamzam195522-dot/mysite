@@ -19,6 +19,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow debug endpoints for troubleshooting.
+  if (pathname.startsWith('/api/debug/')) {
+    return NextResponse.next();
+  }
+
   // Login and Register pages: redirect to dashboard if already logged in.
   if (pathname === '/login' || pathname === '/register') {
     if (sessionCookie?.value) {
