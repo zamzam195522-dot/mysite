@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDbPool } from '@/lib/db';
+import { createHash } from 'crypto';
 import bcrypt from 'bcryptjs';
-import { attachSessionCookie, createSessionToken } from '@/lib/auth';
+import { getDbPool } from '@/lib/db';
+import { createSessionToken, attachSessionCookie } from '@/lib/auth';
 
 type LoginRequest = {
   username?: string;
@@ -9,7 +10,26 @@ type LoginRequest = {
 };
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
+  console.log('verifyPassword: Hash length:', hash.length);
+  console.log('verifyPassword: Hash starts with:', hash.substring(0, 10));
+
+  // Try bcrypt first (new method)
+  if (hash.length > 50 && hash.startsWith('$2')) {
+    console.log('verifyPassword: Using bcrypt verification');
+    try {
+      return await bcrypt.compare(password, hash);
+    } catch (error) {
+      console.log('verifyPassword: Bcrypt verification failed:', error);
+      return false;
+    }
+  }
+
+  // Fallback to SHA256 (old method)
+  console.log('verifyPassword: Using SHA256 verification');
+  const oldHash = createHash('sha256').update(password).digest('hex');
+  const isMatch = oldHash === hash;
+  console.log('verifyPassword: SHA256 match:', isMatch);
+  return isMatch;
 }
 
 export async function POST(request: NextRequest) {
