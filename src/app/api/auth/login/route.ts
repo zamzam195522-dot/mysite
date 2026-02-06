@@ -73,9 +73,13 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return attachSessionCookie(
-    response,
-    await createSessionToken({ id: Number(user.id), username: user.username, roles: user.roles }),
-  );
+  // Debug: Log token creation
+  const token = await createSessionToken({ id: Number(user.id), username: user.username, roles: user.roles });
+  console.log('Login: Token created successfully, length:', token.length);
+
+  const finalResponse = attachSessionCookie(response, token);
+  console.log('Login: Cookie attached to response');
+
+  return finalResponse;
 }
 

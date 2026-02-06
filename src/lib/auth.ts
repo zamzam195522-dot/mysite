@@ -47,6 +47,10 @@ export function attachSessionCookie(
   response: NextResponse,
   token: string,
 ): NextResponse {
+  console.log('attachSessionCookie: Setting cookie with token length:', token.length);
+  console.log('attachSessionCookie: Environment:', process.env.NODE_ENV);
+  console.log('attachSessionCookie: Secure setting:', process.env.NODE_ENV === 'production');
+
   response.cookies.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
@@ -54,6 +58,8 @@ export function attachSessionCookie(
     path: '/',
     maxAge: 60 * 60 * 8, // 8 hours
   });
+
+  console.log('attachSessionCookie: Cookie set successfully');
   return response;
 }
 
