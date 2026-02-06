@@ -5,8 +5,13 @@ export const SESSION_COOKIE_NAME = 'water_session';
 
 // JWT secret key - should be stored in environment variables
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+  process.env.JWT_SECRET || 'fallback-secret-key-for-development-only'
 );
+
+// Log warning if using fallback secret
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('WARNING: JWT_SECRET environment variable is not set in production!');
+}
 
 export type SessionUser = {
   id: number;
