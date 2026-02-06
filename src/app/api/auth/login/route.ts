@@ -20,14 +20,20 @@ export async function POST(request: NextRequest) {
   let body: LoginRequest;
   try {
     body = (await request.json()) as LoginRequest;
-  } catch {
+    console.log('Login: Request body parsed successfully');
+  } catch (error) {
+    console.log('Login: Failed to parse request body:', error);
     return NextResponse.json({ success: false, message: 'Invalid request body' }, { status: 400 });
   }
 
   const username = (body.username ?? '').trim();
   const password = body.password ?? '';
 
+  console.log('Login: Username:', username);
+  console.log('Login: Password provided:', !!password);
+
   if (!username || !password) {
+    console.log('Login: Missing username or password');
     return NextResponse.json({ success: false, message: 'Username and password are required' }, { status: 400 });
   }
 
@@ -56,12 +62,22 @@ export async function POST(request: NextRequest) {
     }
     | undefined;
 
+  console.log('Login: User found:', !!user);
+  if (user) {
+    console.log('Login: User status:', user.status);
+    console.log('Login: User roles:', user.roles);
+  }
+
   if (!user || user.status !== 'ACTIVE') {
+    console.log('Login: Invalid credentials - user not found or inactive');
     return NextResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
   }
 
+  console.log('Login: Verifying password...');
   const passwordMatch = await verifyPassword(password, user.password_hash);
+  console.log('Login: Password match:', passwordMatch);
   if (!passwordMatch) {
+    console.log('Login: Invalid credentials - password mismatch');
     return NextResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
   }
 
