@@ -135,12 +135,6 @@ export default function LoginPage() {
                 {isSubmitting ? 'Signing in...' : 'Sign In'}
               </button>
 
-              <p className="text-center text-sm text-gray-600">
-                Don&apos;t have an account?{' '}
-                <Link href="/register" className="text-sky-900 font-medium hover:underline">
-                  Register
-                </Link>
-              </p>
             </form>
           </SectionCard>
         </div>

@@ -73,6 +73,10 @@ export async function GET(request: Request) {
       items: itemsResult.rows,
       paymentMethod: paymentResult.rows[0]?.paymentMethod || null,
       receivedAmount: paymentResult.rows[0]?.receivedAmount || null,
+      mobileNumbers: ['9203786918', '9203786919', '9203786920'],
+      upiId: '9993786918@pz',
+      qrCode: null, // You can add a QR code image URL here later
+      gstNo: '23FGSPS9732Q2Z3',
     };
 
     return NextResponse.json({ success: true, invoiceData });

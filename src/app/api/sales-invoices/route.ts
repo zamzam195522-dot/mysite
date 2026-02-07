@@ -333,6 +333,10 @@ export async function POST(request: Request) {
       items: itemsResult.rows,
       paymentMethod,
       receivedAmount,
+      mobileNumbers: ['9203786918', '9203786919', '9203786920'],
+      upiId: '9993786918@pz',
+      qrCode: null, // You can add a QR code image URL here later
+      gstNo: '23FGSPS9732Q2Z3',
     };
 
     return NextResponse.json({ success: true, invoiceId, invoiceNo, invoiceData });
