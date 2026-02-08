@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       receivedAmount: paymentResult.rows[0]?.receivedAmount || null,
       mobileNumbers: ['9203786918', '9203786919', '9203786920'],
       upiId: '9993786918@pz',
-      qrCode: null, // You can add a QR code image URL here later
+      qrCode: '/zamzam-qr.jpeg', // QR code image in public folder
       gstNo: '23FGSPS9732Q2Z3',
     };
 
